@@ -5,6 +5,7 @@ acedatacloud-x402
 # --- Synapse Agent Protocol (SAP) & Solana Dependencies ---
 # Assuming 'sap.client' resolves to a custom or upcoming Python distribution 
 # of the Synapse SAP SDK. Update the git/whl path if it's a private repo.
+sap.registery
 sap
 solana
 solders
