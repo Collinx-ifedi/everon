@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from config import settings
 from sap.client import SynapseSAPClient
-from payments.x402_client import X402PaymentClient
+from payment.x402_client import X402PaymentClient
 from models.schemas import ToolDefinition
 from utils.file_manager import append_agent_log
 
