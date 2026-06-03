@@ -1,9 +1,8 @@
 # workflow.py
 
 from __future__ import annotations
-
-import os
 import sys
+import os
 from pathlib import Path
 import json
 import logging
@@ -14,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from config import settings
 from sap.registry import ToolRegistry
-from payments.payment_manager import PaymentManager
+from payment.payment_manager import PaymentManager
 from engine.decision_engine import EveronDecisionEngine
 from models.schemas import ToolDefinition
 from utils.file_manager import append_agent_log
