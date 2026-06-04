@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from config import settings
-from everon.sap.registry import ToolRegistry
+from registry import ToolRegistry
 from payment.payment_manager import PaymentManager
 from engine.decision_engine import EveronDecisionEngine
 from models.schemas import ToolDefinition
