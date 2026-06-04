@@ -21,7 +21,9 @@ def setup_production_logging() -> logging.Logger:
     simultaneous console stdout output and thread-safe file rotation 
     to manage disk space boundaries seamlessly.
     """
-    os.makedirs(settings.DATA_DIR, exist_ok=True)
+    # Safely extract directory path, falling back to "data" if not defined in config
+    data_dir = getattr(settings, "DATA_DIR", "data")
+    os.makedirs(data_dir, exist_ok=True)
     
     logger = logging.getLogger("EveronAgent")
     logger.setLevel(logging.INFO)
@@ -37,7 +39,7 @@ def setup_production_logging() -> logging.Logger:
     )
 
     # 1. Thread-safe Rotating File Handler (Max 10MB per file, rotating across 5 files)
-    log_file_path = os.path.join(settings.DATA_DIR, "system_runtime.log")
+    log_file_path = os.path.join(data_dir, "system_runtime.log")
     file_handler = RotatingFileHandler(
         log_file_path, 
         maxBytes=10 * 1024 * 1024, 
@@ -70,6 +72,7 @@ async def run_everon_application() -> None:
     and mounts the non-blocking autonomous background daemon execution frame.
     """
     agent_name = getattr(settings, "AGENT_NAME", "Everon")
+    data_dir = getattr(settings, "DATA_DIR", "data")
     
     sys.stdout.write(r"""
  _____                               
@@ -84,14 +87,14 @@ async def run_everon_application() -> None:
 
     # Enforce atomic data enclave checks before ignition
     try:
-        os.makedirs(settings.DATA_DIR, exist_ok=True)
+        os.makedirs(data_dir, exist_ok=True)
         await append_agent_log(f"[{agent_name}] Core system runtime folders validated successfully.")
     except Exception as e:
-        logger.critical(f"Data directory generation failure at path [{settings.DATA_DIR}]: {e}")
+        logger.critical(f"Data directory generation failure at path [{data_dir}]: {e}")
         sys.exit(1)
 
-    # Verify cryptographic runtime capability parameters
-    if not settings.SOLANA_WALLET_ADDRESS:
+    # Verify cryptographic runtime capability parameters safely
+    if not getattr(settings, "SOLANA_WALLET_ADDRESS", None):
         logger.critical("Initialization aborted: SOLANA_WALLET_ADDRESS parameter validation failed.")
         sys.exit(1)
 
