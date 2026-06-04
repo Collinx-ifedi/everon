@@ -19,3 +19,4 @@ pydantic-settings
 # --- Dashboard & Visualization (app.py) ---
 streamlit
 pandas
+aiofiles
