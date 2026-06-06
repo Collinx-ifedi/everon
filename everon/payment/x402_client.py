@@ -108,8 +108,17 @@ class X402PaymentClient:
         # -------------------------------------------------------------------------
         target_req = requirement
         
-        # 1. Un-nest the requirements if the API wrapped them
-        if "requirements" in target_req:
+        # 0. Handle X402 v2 Multi-chain "accepts" array
+        if "accepts" in target_req and isinstance(target_req["accepts"], list):
+            # Scan array for the Solana specific requirement payload
+            solana_req = next((req for req in target_req["accepts"] if req.get("network") == "solana"), None)
+            if solana_req:
+                target_req = solana_req
+            else:
+                logger.error("No 'solana' network option found in X402 v2 'accepts' array.")
+                return None
+        # 1. Fallback: Un-nest the requirements if the API wrapped them (X402 v1)
+        elif "requirements" in target_req:
             target_req = target_req["requirements"]
         elif "error" in target_req and isinstance(target_req["error"], dict) and "requirements" in target_req["error"]:
             target_req = target_req["error"]["requirements"]
@@ -120,9 +129,9 @@ class X402PaymentClient:
         if "payTo" not in normalized_req:
             normalized_req["payTo"] = normalized_req.get("pay_to") or normalized_req.get("wallet") or normalized_req.get("provider_wallet")
 
-        # 3. Map 'amount' 
+        # 3. Map 'amount' (In X402 v2, the target ceiling is often mapped as 'maxAmountRequired')
         if "amount" not in normalized_req:
-            normalized_req["amount"] = normalized_req.get("cost") or normalized_req.get("price") or normalized_req.get("lamports")
+            normalized_req["amount"] = normalized_req.get("maxAmountRequired") or normalized_req.get("cost") or normalized_req.get("price") or normalized_req.get("lamports")
 
         # 4. Map 'nonce'
         if "nonce" not in normalized_req:
