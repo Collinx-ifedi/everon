@@ -22,7 +22,7 @@ logger = logging.getLogger("EveronAgent")
 
 
 # -------------------------------------------------------------------------
-# ToolRegistry (Patched with Hardened Object Fallback)
+# ToolRegistry (Patched with Upper-Case Payment Rails)
 # -------------------------------------------------------------------------
 class ToolRegistry:
     """
@@ -54,7 +54,8 @@ class ToolRegistry:
             "capability": capability,
             "endpoint_url": endpoint,
             "pricing_per_call": 0.001,  # Metered SPL USDC execution price
-            "provider_wallet": getattr(settings, "SOLANA_WALLET_ADDRESS", "Ccr2yK3hLALU4p8oNRqrh4dGuvPJTth5KCLMio8cE1ph")
+            "provider_wallet": getattr(settings, "SOLANA_WALLET_ADDRESS", "Ccr2yK3hLALU4p8oNRqrh4dGuvPJTth5KCLMio8cE1ph"),
+            "payment_type": "SOLANA"  # Enforce absolute uppercase for payment settlement routing
         }
 
         # Seamlessly instantiate the target schema, with an absolute object fallback
@@ -71,7 +72,7 @@ class ToolRegistry:
                     self.endpoint_url = payload_dict["endpoint_url"]
                     self.pricing_per_call = payload_dict["pricing_per_call"]
                     self.provider_wallet = payload_dict["provider_wallet"]
-                    self.payment_type = "solana"
+                    self.payment_type = str(payload_dict.get("payment_type", "SOLANA")).upper()
             
             return FallbackToolInstance(tool_payload)
 
