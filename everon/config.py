@@ -67,15 +67,17 @@ class Settings:
     ACE_API_KEY: str
 
     # =========================
-    # Wallet
+    # Wallet & Cryptography
     # =========================
     SOLANA_WALLET_ADDRESS: str
+    SOLANA_PRIVATE_KEY: str
 
     # =========================
     # Agent Runtime
     # =========================
     AGENT_NAME: str
     ANALYSIS_INTERVAL_SECONDS: int
+    DATA_DIR: str
 
     # =========================
     # Logging
@@ -114,6 +116,11 @@ class Settings:
                 "SOLANA_WALLET_ADDRESS",
                 required=True
             ),
+            
+            SOLANA_PRIVATE_KEY=get_env(
+                "SOLANA_PRIVATE_KEY",
+                required=True
+            ),
 
             AGENT_NAME=get_env(
                 "AGENT_NAME",
@@ -125,6 +132,11 @@ class Settings:
                     "ANALYSIS_INTERVAL_SECONDS",
                     default="900"
                 )
+            ),
+            
+            DATA_DIR=get_env(
+                "DATA_DIR",
+                default="data"
             ),
 
             LOG_LEVEL=get_env(
