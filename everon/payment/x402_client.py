@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 import base64
 import logging
+import uuid
 from typing import Dict, Any, Optional
 
 # AceDataCloud official Python SDK imports
@@ -88,15 +89,8 @@ class X402PaymentClient:
     async def generate_payment_header(self, requirement: Dict[str, Any]) -> Optional[str]:
         """
         Low-level envelope signing method. Takes an incoming 402 Payment Required 
-        parameter block, signs it via the Solana keypair, and produces the exact 
-        Base64-encoded X-PAYMENT header string required by the RPC Server.
-        
-        Args:
-            requirement: The dictionary payload specifying the transaction cost, 
-                         nonce, and destination address provided by the gateway.
-                         
-        Returns:
-            str: The fully formatted, Base64-encoded header value.
+        parameter block, normalizes structural mismatches, signs it via the Solana keypair, 
+        and produces the Base64-encoded X-PAYMENT header string required by the RPC Server.
         """
         if not self.signer:
             logger.error("Cannot sign X402 payment envelope: Signer is offline.")
@@ -108,14 +102,46 @@ class X402PaymentClient:
 
         await append_agent_log(f"[{self.agent_name}] Generating X402 cryptographic payment envelope...")
 
+        # -------------------------------------------------------------------------
+        # NORMALIZATION BLOCK
+        # Extracts nested JSON layers and forces camelCase conformity for the SDK
+        # -------------------------------------------------------------------------
+        target_req = requirement
+        
+        # 1. Un-nest the requirements if the API wrapped them
+        if "requirements" in target_req:
+            target_req = target_req["requirements"]
+        elif "error" in target_req and isinstance(target_req["error"], dict) and "requirements" in target_req["error"]:
+            target_req = target_req["error"]["requirements"]
+
+        normalized_req = dict(target_req)
+
+        # 2. Map 'payTo' (Handle snake_case or alternative naming)
+        if "payTo" not in normalized_req:
+            normalized_req["payTo"] = normalized_req.get("pay_to") or normalized_req.get("wallet") or normalized_req.get("provider_wallet")
+
+        # 3. Map 'amount' 
+        if "amount" not in normalized_req:
+            normalized_req["amount"] = normalized_req.get("cost") or normalized_req.get("price") or normalized_req.get("lamports")
+
+        # 4. Map 'nonce'
+        if "nonce" not in normalized_req:
+            normalized_req["nonce"] = normalized_req.get("id") or normalized_req.get("request_id") or str(uuid.uuid4())
+
+        # Abort if we still can't find a valid destination address
+        if not normalized_req.get("payTo"):
+            logger.error(f"X402 payload is missing a destination address ('payTo') after normalization. Raw: {requirement}")
+            return None
+        # -------------------------------------------------------------------------
+
         try:
-            # 1. Produce the signature dictionary from the incoming target requirement
-            envelope = sign_solana_payment(requirement, self.signer)
+            # Produce the signature dictionary from the sanitized target requirement
+            envelope = sign_solana_payment(normalized_req, self.signer)
             
-            # 2. Stringify the JSON structure with zero whitespace to ensure hash integrity
+            # Stringify the JSON structure with zero whitespace to ensure hash integrity
             json_str = json.dumps(envelope, separators=(',', ':'))
             
-            # 3. Base64-encode the payload to build the HTTP header value
+            # Base64-encode the payload to build the HTTP header value
             x_payment_header_value = base64.b64encode(json_str.encode('utf-8')).decode('utf-8')
             
             await append_agent_log(f"[{self.agent_name}] X402 payment envelope successfully signed and encoded.")
