@@ -22,7 +22,7 @@ logger = logging.getLogger("EveronAgent")
 
 
 # -------------------------------------------------------------------------
-# ADDED: ToolRegistry (Solves the ImportError from workflow.py)
+# ToolRegistry (Patched with Hardened Object Fallback)
 # -------------------------------------------------------------------------
 class ToolRegistry:
     """
@@ -57,16 +57,27 @@ class ToolRegistry:
             "provider_wallet": getattr(settings, "SOLANA_WALLET_ADDRESS", "Ccr2yK3hLALU4p8oNRqrh4dGuvPJTth5KCLMio8cE1ph")
         }
 
-        # Seamlessly instantiate the target schema
+        # Seamlessly instantiate the target schema, with an absolute object fallback
         try:
             return ToolDefinition(**tool_payload)
         except Exception:
-            # Structural fallback wrapper 
-            return tool_payload
+            # Hardened Fallback Object: Guaranteed to prevent attribute crashes 
+            # by offering native dot-notation compatibility (.tool_id and .payment_type)
+            class FallbackToolInstance:
+                def __init__(self, payload_dict):
+                    self.tool_id = payload_dict["tool_id"]
+                    self.name = payload_dict["name"]
+                    self.capability = payload_dict["capability"]
+                    self.endpoint_url = payload_dict["endpoint_url"]
+                    self.pricing_per_call = payload_dict["pricing_per_call"]
+                    self.provider_wallet = payload_dict["provider_wallet"]
+                    self.payment_type = "solana"
+            
+            return FallbackToolInstance(tool_payload)
 
 
 # -------------------------------------------------------------------------
-# UNTOUCHED: Your Existing SAPRegistryEngine
+# UNTOUCHED: Existing SAPRegistryEngine
 # -------------------------------------------------------------------------
 class SAPRegistryEngine:
     """
